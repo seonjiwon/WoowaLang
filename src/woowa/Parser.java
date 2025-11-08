@@ -7,8 +7,8 @@ import java.util.List;
 /**
  * Parser (구문 분석기) 토큰 리스트를 AST로 변환
  * <p>
- * 연산자 우선순위 (높은 것부터): 1. primary    → 숫자, 문자열, 괄호 2. unary      → !, - 3. factor     → *, / 4. term
- * → +, - 5. comparison → >, >=, <, <= 6. equality   → ==, !=
+ * 연산자 우선순위 (높은 것부터): 1. primary    -> 숫자, 문자열, 괄호 2. unary      -> !, - 3. factor     -> *, / 4. term
+ * -> +, - 5. comparison -> >, >=, <, <= 6. equality   -> ==, !=
  */
 public class Parser {
 
@@ -104,7 +104,7 @@ public class Parser {
 
     /**
      * 가장 높은 우선순위의 표현식 파싱 (리터럴, 괄호)
-     * primary → NUMBER | STRING | "true" | "false" | "nil" | "(" expression ")" ;
+     * primary -> NUMBER | STRING | "true" | "false" | "nil" | "(" expression ")" ;
      */
     private Expr primary() {
         if (match(FALSE)) {
@@ -120,7 +120,7 @@ public class Parser {
         }
 
         // previous().literal: 토큰의 실제 값
-        // 예: "123" 토큰 → 123.0 (double)
+        // 예: "123" 토큰 -> 123.0 (double)
         if (match(NUMBER, STRING)) {
             return new Expr.Literal(previous().literal);
         }
@@ -129,11 +129,11 @@ public class Parser {
         if (match(LEFT_PAREN)) {
             Expr expr = expression(); // 괄호 안의 표현식 재귀 파싱
             consume(RIGHT_PAREN, "표현식 다음에 ')'가 필요합니다."); // ')' 필수!
-            return new Expr.Grouping(expr); // (1 + 2) → Grouping(Binary(1, +, 2))
+            return new Expr.Grouping(expr); // (1 + 2) -> Grouping(Binary(1, +, 2))
         }
 
         // 어떤 것도 매치되지 않으면 에러
-        // "+ 5" → +는 primary 가 될 수 없음
+        // "+ 5" -> +는 primary 가 될 수 없음
         throw error(peek(), "표현식이 필요합니다.");
     }
 
