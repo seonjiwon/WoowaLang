@@ -1,11 +1,10 @@
-package scanner;
+package woowa;
 
-import static scanner.TokenType.*;
+import static woowa.TokenType.*;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
-import woowa.Woowa;
 
 public class Scanner {
 

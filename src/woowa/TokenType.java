@@ -1,4 +1,4 @@
-package scanner;
+package woowa;
 
 enum TokenType {
     // 단일 문자 토큰 (한 글자로 이루어진 연산자나 구분자)
