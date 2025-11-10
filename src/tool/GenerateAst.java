@@ -11,6 +11,8 @@ import java.util.List;
  * Expr(Expression), Stmt(Statement) 생성
  * 보일러플레이트 코드
  *
+ * [실행]
+ * javac -d out/production/WoowaLang src/tool/GenerateAst.java
  * java -cp out/production/WoowaLang tool.GenerateAst src/woowa
  */
 public class GenerateAst {
@@ -25,7 +27,14 @@ public class GenerateAst {
             "Binary   : Expr left, Token operator, Expr right", // 1 + 2
             "Grouping : Expr expression",
             "Literal  : Object value",
-            "Unary    : Token operator, Expr right"
+            "Unary    : Token operator, Expr right",
+            "Variable : Token name"
+        ));
+
+        defineAst(outputDir, "Stmt", Arrays.asList(
+            "Expression : Expr expression",
+            "Print      : Expr expression",
+            "Var        : Token name, Expr initializer"
         ));
     }
 

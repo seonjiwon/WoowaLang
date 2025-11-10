@@ -8,6 +8,10 @@ import java.nio.file.Files;
 import java.nio.file.Paths;
 import java.util.List;
 
+/**
+ * java -d out/production/WoowaLang woowa.Woowa
+ * java -cp out/production/WoowaLang woowa.Woowa
+ */
 public class Woowa {
     private static final Interpreter interpreter = new Interpreter();
     static boolean hadError = false;
@@ -59,12 +63,12 @@ public class Woowa {
         List<Token> tokens = scanner.scanTokens();
 
         Parser parser = new Parser(tokens);
-        Expr expression = parser.parse();
+        List<Stmt> statements = parser.parse();
 
         // 구문 에러시 정지
         if (hadError) return;
 
-        interpreter.interpret(expression);
+        interpreter.interpret(statements);
     }
 
     // 에러 처리

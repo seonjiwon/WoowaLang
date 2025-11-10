@@ -1,5 +1,6 @@
 package woowa;
 
+import java.util.List;
 import woowa.Expr.Binary;
 import woowa.Expr.Grouping;
 import woowa.Expr.Literal;
@@ -8,7 +9,7 @@ import woowa.Expr.Unary;
 /**
  * 인터프리터 (Interpreter) AST 를 순회하며 실제로 표현식을 평가
  */
-public class Interpreter implements Expr.Visitor<Object> {
+public class Interpreter implements Expr.Visitor<Object>, Stmt.Visitor<Void> {
 
     /**
      * 1. 표현식을 평가(evaluate)
@@ -16,10 +17,11 @@ public class Interpreter implements Expr.Visitor<Object> {
      * 3. 콘솔에 출력
      * 4. 런타임 에러 발생 시 에러 처리
      */
-    void interpret(Expr expression) { // [void]
+    void interpret(List<Stmt> statements) {
         try {
-            Object value = evaluate(expression);
-            System.out.println(stringify(value));
+            for (Stmt statement : statements) {
+                execute(statement); // 각 문장 실행
+            }
         } catch (RuntimeError error) {
             Woowa.runtimeError(error);
         }
@@ -27,6 +29,23 @@ public class Interpreter implements Expr.Visitor<Object> {
 
     private Object evaluate(Expr expr) {
         return expr.accept(this);
+    }
+
+    private void execute(Stmt stmt) {
+        stmt.accept(this);
+    }
+
+    @Override
+    public Void visitExpressionStmt(Stmt.Expression stmt) {
+        evaluate(stmt.expression);
+        return null;
+    }
+
+    @Override
+    public Void visitPrintStmt(Stmt.Print stmt) {
+        Object value = evaluate(stmt.expression);
+        System.out.println(stringify(value));
+        return null;
     }
 
     @Override

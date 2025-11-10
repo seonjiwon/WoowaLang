@@ -2,6 +2,7 @@ package woowa;
 
 import static woowa.TokenType.*;
 
+import java.util.ArrayList;
 import java.util.List;
 
 /**
@@ -24,12 +25,13 @@ public class Parser {
     }
 
     // 초기 메서드 정의
-    Expr parse() {
-        try {
-            return expression();
-        } catch (ParseError error) {
-            return null;
+    List<Stmt> parse() {
+        List<Stmt> statements = new ArrayList<>();
+        while (!isAtEnd()) {
+            statements.add(statement());
         }
+
+        return statements;
     }
 
     /**
@@ -37,6 +39,29 @@ public class Parser {
      */
     private Expr expression() {
         return equality();
+    }
+
+    private Stmt statement() {
+        // print 토큰이 나오면 print 문
+        if (match(PRINT)) {
+            return printStatement();
+        }
+
+        // 알러진 문장처럼 보이지 않으면 표현문이라 가정
+        return expressionStatement();
+    }
+
+    // print 문 처리
+    private Stmt printStatement() {
+        Expr value = expression();
+        consume(SEMICOLON, "값 뒤에 ';'이 필요합니다.");
+        return new Stmt.Print(value);
+    }
+
+    private Stmt expressionStatement() {
+        Expr expr = expression();
+        consume(SEMICOLON, "표현식 뒤에 ';'이 필요합니다.");
+        return new Stmt.Expression(expr);
     }
 
     /**

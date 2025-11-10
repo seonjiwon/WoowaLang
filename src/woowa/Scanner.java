@@ -1,6 +1,7 @@
 package woowa;
 
 import static woowa.TokenType.*;
+
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
@@ -183,27 +184,30 @@ public class Scanner {
         if (type == null) {
             type = IDENTIFIER; // 키워드가 아니면 식별자
         }
-        addToken(IDENTIFIER);
+        addToken(type);
     }
 
     private void string() {
+        // 닫는 따옴표를 만날 때까지 계속 진행
         while (peek() != '"' && !isAtEnd()) {
             if (peek() == '\n') {
-                line++;
-                advance();
+                line++; // 여러 줄 문자열 지원
             }
-
-            if (isAtEnd()) {
-                Woowa.error(line, "문장이 종료되지 않았습니다.");
-            }
-
-            // 문장이 닫기면
             advance();
-
-            // 앞 뒤 큰 따옴표 제거
-            String value = source.substring(start + 1, current - 1);
-            addToken(STRING, value);
         }
+
+        // 문자열이 닫히지 않은 채 파일이 끝난 경우
+        if (isAtEnd()) {
+            Woowa.error(line, "문자열이 종료되지 않았습니다.");
+            return;
+        }
+
+        // 닫는 " 소비
+        advance();
+
+        // 앞뒤 큰따옴표를 제거한 실제 문자열 값
+        String value = source.substring(start + 1, current - 1);
+        addToken(STRING, value);
     }
 
     private void number() {
