@@ -45,6 +45,16 @@ public class AstPrinter implements Expr.Visitor<String>, Stmt.Visitor<String>{
     }
 
     @Override
+    public String visitIfStmt(Stmt.If stmt) {
+        if (stmt.elseBranch == null) {
+            return parenthesize2("if", stmt.condition, stmt.thenBranch);
+        }
+
+        return parenthesize2("if-else", stmt.condition, stmt.thenBranch,
+            stmt.elseBranch);
+    }
+
+    @Override
     public String visitPrintStmt(Stmt.Print stmt) {
         return parenthesize("print", stmt.expression);
     }
@@ -82,6 +92,11 @@ public class AstPrinter implements Expr.Visitor<String>, Stmt.Visitor<String>{
             return "nil"; // null -> "nil"로
         }
         return expr.value.toString(); // 123 -> "123", "hello" -> "hello"
+    }
+
+    @Override
+    public String visitLogicalExpr(Expr.Logical expr) {
+        return parenthesize(expr.operator.lexeme, expr.left, expr.right);
     }
 
     // 단항 연산 표현식 방문 (예: -5, !true)

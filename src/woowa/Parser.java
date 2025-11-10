@@ -56,6 +56,9 @@ public class Parser {
     }
 
     private Stmt statement() {
+        if (match(IF)) {
+            return ifStatement();
+        }
         // print 토큰이 나오면 print 문
         if (match(PRINT)) {
             return printStatement();
@@ -67,6 +70,21 @@ public class Parser {
 
         // 알러진 문장처럼 보이지 않으면 표현문이라 가정
         return expressionStatement();
+    }
+
+    private Stmt ifStatement() {
+        consume(LEFT_PAREN, "'if' 뒤에는 '('가 필요합니다.");
+        Expr condition = expression();
+        consume(RIGHT_PAREN, "'if' 문 뒤에는 ')'가 필요합니다.");
+
+        Stmt thenBranch = statement();
+        Stmt elseBranch = null;
+        // else 키워드가 있으면 else 절로 인식
+        if (match(ELSE)) {
+            elseBranch = statement();
+        }
+
+        return new Stmt.If(condition, thenBranch, elseBranch);
     }
 
     // print 문 처리
@@ -122,7 +140,7 @@ public class Parser {
      */
     private Expr assignment() {
         // equality 표현식으로 파싱 (좌변이 될 수 있는 표현식)
-        Expr expr = equality();
+        Expr expr = or();
 
         // "=" 토큰이 있으면 할당으로 판단
         if (match(EQUAL)) {
@@ -140,6 +158,28 @@ public class Parser {
             error(equals, "잘못된 할당 대상입니다.");
         }
 
+        return expr;
+    }
+
+    private Expr or() {
+        Expr expr = and();
+
+        while (match(OR)) {
+            Token operator = previous();
+            Expr right = and();
+            expr = new Expr.Logical(expr, operator, right);
+        }
+        return expr;
+    }
+
+    private Expr and() {
+        Expr expr = equality();
+
+        while (match(AND)) {
+            Token operator = previous();
+            Expr right = equality();
+            expr = new Expr.Logical(expr, operator, right);
+        }
         return expr;
     }
 
