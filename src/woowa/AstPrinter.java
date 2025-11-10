@@ -4,6 +4,7 @@ import woowa.Expr.Binary;
 import woowa.Expr.Grouping;
 import woowa.Expr.Literal;
 import woowa.Expr.Unary;
+import woowa.Expr.Variable;
 
 /**
  * AST를 읽기 쉬운 문자열로 변환하는 Visitor 구현체
@@ -41,6 +42,11 @@ public class AstPrinter implements Expr.Visitor<String>{
     @Override
     public String visitUnaryExpr(Expr.Unary expr) {
         return parenthesize(expr.operator.lexeme, expr.right); // -123 -> "(- 123)"
+    }
+
+    @Override
+    public String visitVariableExpr(Variable expr) {
+        return expr.name.lexeme;
     }
 
     private String parenthesize(String name, Expr... exprs) {

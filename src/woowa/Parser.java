@@ -8,8 +8,8 @@ import java.util.List;
 /**
  * Parser (구문 분석기) 토큰 리스트를 AST로 변환
  * <p>
- * 연산자 우선순위 (높은 것부터): 1. primary    -> 숫자, 문자열, 괄호 2. unary      -> !, - 3. factor     -> *, / 4. term
- * -> +, - 5. comparison -> >, >=, <, <= 6. equality   -> ==, !=
+ * 연산자 우선순위 (높은 것부터): 1. primary    -> 숫자, 문자열, 괄호 2. unary      -> !, - 3. factor     -> *, / 4.
+ * term -> +, - 5. comparison -> >, >=, <, <= 6. equality   -> ==, !=
  */
 public class Parser {
 
@@ -28,7 +28,7 @@ public class Parser {
     List<Stmt> parse() {
         List<Stmt> statements = new ArrayList<>();
         while (!isAtEnd()) {
-            statements.add(statement());
+            statements.add(declaration());
         }
 
         return statements;
@@ -39,6 +39,19 @@ public class Parser {
      */
     private Expr expression() {
         return equality();
+    }
+
+    private Stmt declaration() {
+        try {
+            // 변수를 선언하고 있는지 먼저 확인
+            if (match(VAR)) {
+                return varDeclaration();
+            }
+            return statement();
+        } catch (ParseError error) {
+            synchronize();
+            return null;
+        }
     }
 
     private Stmt statement() {
@@ -56,6 +69,21 @@ public class Parser {
         Expr value = expression();
         consume(SEMICOLON, "값 뒤에 ';'이 필요합니다.");
         return new Stmt.Print(value);
+    }
+
+    private Stmt varDeclaration() {
+        Token name = consume(IDENTIFIER, "변수 이름이 필요합니다.");
+
+        // 초기식이 없으면 Null
+        Expr initializer = null;
+
+        // 초기식이 있으면 파싱
+        if (match(EQUAL)) {
+            initializer = expression();
+        }
+
+        consume(SEMICOLON, "변수 선언 뒤에 ';' 이 필요합니다.");
+        return new Stmt.Var(name, initializer);
     }
 
     private Stmt expressionStatement() {
@@ -128,8 +156,8 @@ public class Parser {
 
 
     /**
-     * 가장 높은 우선순위의 표현식 파싱 (리터럴, 괄호)
-     * primary -> NUMBER | STRING | "true" | "false" | "nil" | "(" expression ")" ;
+     * 가장 높은 우선순위의 표현식 파싱 (리터럴, 괄호) primary -> NUMBER | STRING | "true" | "false" | "nil" | "("
+     * expression ")" ;
      */
     private Expr primary() {
         if (match(FALSE)) {
@@ -148,6 +176,10 @@ public class Parser {
         // 예: "123" 토큰 -> 123.0 (double)
         if (match(NUMBER, STRING)) {
             return new Expr.Literal(previous().literal);
+        }
+
+        if (match(IDENTIFIER)) {
+            return new Expr.Variable(previous());
         }
 
         // 괄호로 묶인 표현식 (그룹)
@@ -215,18 +247,18 @@ public class Parser {
     }
 
     /**
-     * 파서 동기화
-     * 에러 발생 후 파서를 복구하여 나머지 코드도 계속 파실 할 수 있게 함
-     *
-     * 하나의 에러 때문에 전체 파싱을 중단하지 않고,
-     * 다음 문장의 시작점 까지 건너 뛰어 계속 진행
+     * 파서 동기화 에러 발생 후 파서를 복구하여 나머지 코드도 계속 파실 할 수 있게 함
+     * <p>
+     * 하나의 에러 때문에 전체 파싱을 중단하지 않고, 다음 문장의 시작점 까지 건너 뛰어 계속 진행
      */
     private void synchronize() {
         advance(); // 에러 난 토큰 건너 뛰기
 
         while (!isAtEnd()) {
             // 세미 콜론을 만나면 문장의 끝
-            if (previous().type == SEMICOLON) return;
+            if (previous().type == SEMICOLON) {
+                return;
+            }
 
             // 다음 토큰이 새로운 문장의 시작이면 복구 완료
             switch (peek().type) {
