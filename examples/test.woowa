@@ -1,0 +1,19 @@
+변수 a = "global a";
+변수 b = "global b";
+변수 c = "global c";
+{
+    변수 a = "outer a";
+    변수 b = "outer b";
+    {
+        변수 a = "inner a";
+        출력 a;
+        출력 b;
+        출력 c;
+    }
+    출력 a;
+    출력 b;
+    출력 c;
+}
+출력 a;
+출력 b;
+출력 c;

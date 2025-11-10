@@ -4,6 +4,7 @@ import static woowa.TokenType.*;
 
 import java.util.ArrayList;
 import java.util.List;
+import woowa.Expr.Variable;
 
 /**
  * Parser (구문 분석기) 토큰 리스트를 AST로 변환
@@ -38,7 +39,7 @@ public class Parser {
      * 표현식 파싱 시작점 가잔 낮은 우선순위 equality 부터 시작
      */
     private Expr expression() {
-        return equality();
+        return assignment();
     }
 
     private Stmt declaration() {
@@ -58,6 +59,10 @@ public class Parser {
         // print 토큰이 나오면 print 문
         if (match(PRINT)) {
             return printStatement();
+        }
+
+        if (match(LEFT_BRACE)) {
+            return new Stmt.Block(block());
         }
 
         // 알러진 문장처럼 보이지 않으면 표현문이라 가정
@@ -90,6 +95,52 @@ public class Parser {
         Expr expr = expression();
         consume(SEMICOLON, "표현식 뒤에 ';'이 필요합니다.");
         return new Stmt.Expression(expr);
+    }
+
+    private List<Stmt> block() {
+        List<Stmt> statements = new ArrayList<>();
+
+        while (!check(RIGHT_BRACE) && !isAtEnd()) {
+            statements.add(declaration());
+        }
+
+        consume(RIGHT_BRACE, "블럭 뒤에는 '}' 이 필요합니다.");
+        return statements;
+    }
+
+    /**
+     * 할당 표현식 파싱 (Assignment Expression)
+     * 문법: assignment -> IDENTIFIER "=" assignment | equality ;
+     *
+     * 할당은 우결합(right-associative) 연산자
+     * 예: a = b = c = 5; → a = (b = (c = 5))
+     *
+     * 예시:
+     * - x = 10;        → Assign(x, 10)
+     * - x = y = 5;     → Assign(x, Assign(y, 5))
+     * - x + 1 = 10;    → 에러: "잘못된 할당 대상입니다."
+     */
+    private Expr assignment() {
+        // equality 표현식으로 파싱 (좌변이 될 수 있는 표현식)
+        Expr expr = equality();
+
+        // "=" 토큰이 있으면 할당으로 판단
+        if (match(EQUAL)) {
+            Token equals = previous();
+            // 우번을 재귀적으로 할당
+            Expr value = assignment();
+
+            // 좌변이 변수인지 검증
+            if (expr instanceof Expr.Variable) {
+                Token name = ((Variable) expr).name;
+                // Assign 노드 생성후 반환
+                return new Expr.Assign(name, value);
+            }
+
+            error(equals, "잘못된 할당 대상입니다.");
+        }
+
+        return expr;
     }
 
     /**

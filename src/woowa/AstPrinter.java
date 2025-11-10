@@ -1,20 +1,66 @@
 package woowa;
 
+import java.util.List;
+import woowa.Expr.Assign;
 import woowa.Expr.Binary;
 import woowa.Expr.Grouping;
 import woowa.Expr.Literal;
 import woowa.Expr.Unary;
 import woowa.Expr.Variable;
+import woowa.Stmt.Expression;
+import woowa.Stmt.Print;
+import woowa.Stmt.Var;
 
 /**
  * AST를 읽기 쉬운 문자열로 변환하는 Visitor 구현체
  *
  * 예: (1 + 2) * 3 -> "(* (group (+ 1 2)) 3)"
  */
-public class AstPrinter implements Expr.Visitor<String>{
+public class AstPrinter implements Expr.Visitor<String>, Stmt.Visitor<String>{
 
     String print(Expr expr) {
         return expr.accept(this);
+    }
+
+    String print(Stmt stmt) {
+        return stmt.accept(this);
+    }
+
+    @Override
+    public String visitBlockStmt(Stmt.Block stmt) {
+        StringBuilder builder = new StringBuilder();
+        builder.append("(block ");
+
+        for (Stmt statement : stmt.statements) {
+            builder.append(statement.accept(this));
+        }
+
+        builder.append(")");
+        return builder.toString();
+    }
+
+    @Override
+    public String visitExpressionStmt(Stmt.Expression stmt) {
+        return parenthesize(";", stmt.expression);
+    }
+
+    @Override
+    public String visitPrintStmt(Stmt.Print stmt) {
+        return parenthesize("print", stmt.expression);
+    }
+
+    @Override
+    public String visitVarStmt(Stmt.Var stmt) {
+        if (stmt.initializer == null) {
+            return parenthesize2("var", stmt.name);
+        }
+
+        return parenthesize2("var", stmt.name, "=", stmt.initializer);
+    }
+
+    @Override
+    public String visitAssignExpr(Assign expr) {
+        return parenthesize2("=", expr.name.lexeme, expr.value);
     }
 
     // 이항 연산 표현식 방문 (예: 1 + 2, 3 * 4)
@@ -60,5 +106,32 @@ public class AstPrinter implements Expr.Visitor<String>{
         builder.append(")"); // 닫는 괄호
 
         return builder.toString(); // parenthesize("+", Literal(1), Literal(2)) -> "(+ 1 2)"
+    }
+
+    private String parenthesize2(String name, Object... parts) {
+        StringBuilder builder = new StringBuilder();
+
+        builder.append("(").append(name);
+        transform(builder, parts);
+        builder.append(")");
+
+        return builder.toString();
+    }
+
+    private void transform(StringBuilder builder, Object... parts) {
+        for (Object part : parts) {
+            builder.append(" ");
+            if (part instanceof Expr) {
+                builder.append(((Expr)part).accept(this));
+            } else if (part instanceof Stmt) {
+                builder.append(((Stmt) part).accept(this));
+            } else if (part instanceof Token) {
+                builder.append(((Token) part).lexeme);
+            } else if (part instanceof List) {
+                transform(builder, ((List) part).toArray());
+            } else {
+                builder.append(part);
+            }
+        }
     }
 }

@@ -38,6 +38,29 @@ public class Interpreter implements Expr.Visitor<Object>, Stmt.Visitor<Void> {
     }
 
     @Override
+    public Void visitBlockStmt(Stmt.Block stmt) {
+        executeBlock(stmt.statements, new Environment(environment));
+        return null;
+    }
+
+    void executeBlock(List<Stmt> statements, Environment environment) {
+        // 블록 실행 후 원래 로 돌아가기 위해 현재 환경 백업
+        Environment previous = this.environment;
+        try {
+            // 새로운 환경으로 전환
+            this.environment = environment;
+
+            // 블록 내부 문장 순차적으로 실행
+            for (Stmt statement : statements) {
+                execute(statement);
+            }
+        } finally {
+            // 환경 복원
+            this.environment = previous;
+        }
+    }
+
+    @Override
     public Void visitExpressionStmt(Stmt.Expression stmt) {
         evaluate(stmt.expression);
         return null;
@@ -59,6 +82,13 @@ public class Interpreter implements Expr.Visitor<Object>, Stmt.Visitor<Void> {
 
         environment.define(stmt.name.lexeme, value);
         return null;
+    }
+
+    @Override
+    public Object visitAssignExpr(Expr.Assign expr) {
+        Object value = evaluate(expr.value);
+        environment.assign(expr.name, value);
+        return value;
     }
 
     @Override
