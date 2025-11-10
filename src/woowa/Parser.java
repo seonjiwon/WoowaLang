@@ -3,6 +3,7 @@ package woowa;
 import static woowa.TokenType.*;
 
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.List;
 import woowa.Expr.Variable;
 
@@ -56,6 +57,10 @@ public class Parser {
     }
 
     private Stmt statement() {
+        if (match(FOR)) {
+            return forStatement();
+        }
+
         if (match(IF)) {
             return ifStatement();
         }
@@ -64,12 +69,66 @@ public class Parser {
             return printStatement();
         }
 
+        if (match(WHILE)) {
+            return whileStatement();
+        }
+
         if (match(LEFT_BRACE)) {
             return new Stmt.Block(block());
         }
 
         // 알러진 문장처럼 보이지 않으면 표현문이라 가정
         return expressionStatement();
+    }
+
+    private Stmt forStatement() {
+        consume(LEFT_PAREN, "'for' 뒤에는 '(' 가 필요합니다.");
+
+        // 다음의 토큰이 세미콜론이면 초기자가 생략된 것이다.
+        // 그게 아니라면 var 키워드를 보고 변수 선언인지 확인
+        Stmt initializer;
+        if (match(SEMICOLON)) {
+            initializer = null;
+        } else if (match(VAR)) {
+            initializer = varDeclaration();
+        } else {
+            initializer = expressionStatement();
+        }
+
+        // 세미콜론 여부로 조건절이 생략됐는지 체크
+        Expr condition = null;
+        if (!check(SEMICOLON)) {
+            condition = expression();
+        }
+        consume(SEMICOLON, "루프 뒤에는 ';'가 필요합니다..");
+
+        Expr increment = null;
+        if (!check(RIGHT_PAREN)) {
+            increment = expression();
+        }
+        consume(RIGHT_PAREN, "for 절 뒤에 ')' 가 필요합니다.");
+        Stmt body = statement();
+
+        // 증분은 루프가 반복될 때 마다 바디 다음에 실행된다.
+        if (increment != null) {
+            body = new Stmt.Block(
+                Arrays.asList(
+                    body,
+                    new Stmt.Expression(increment)));
+        }
+
+        // 조건과 바디를 가져와서 원시 while 루프를 만든다. 조건이 없으면 true 를 넣어 무한 루프로 만든다.
+        if (condition == null) {
+            condition = new Expr.Literal(true);
+        }
+        body = new Stmt.While(condition, body);
+
+        // 초기자가 있으면 전체 루프를 실행하기 전에 한번 실행한다.
+        if (initializer != null) {
+            body = new Stmt.Block(Arrays.asList(initializer, body));
+        }
+
+        return body;
     }
 
     private Stmt ifStatement() {
@@ -109,6 +168,16 @@ public class Parser {
         return new Stmt.Var(name, initializer);
     }
 
+    private Stmt whileStatement() {
+        consume(LEFT_PAREN, "'while' 뒤에 '(' 가 필요합니다.");
+        Expr condition = expression();
+        consume(RIGHT_PAREN, "'while' 문 뒤에 ')' 가 필요합니다.");
+
+        Stmt body = statement();
+
+        return new Stmt.While(condition, body);
+    }
+
     private Stmt expressionStatement() {
         Expr expr = expression();
         consume(SEMICOLON, "표현식 뒤에 ';'이 필요합니다.");
@@ -127,16 +196,12 @@ public class Parser {
     }
 
     /**
-     * 할당 표현식 파싱 (Assignment Expression)
-     * 문법: assignment -> IDENTIFIER "=" assignment | equality ;
-     *
-     * 할당은 우결합(right-associative) 연산자
-     * 예: a = b = c = 5; → a = (b = (c = 5))
-     *
-     * 예시:
-     * - x = 10;        → Assign(x, 10)
-     * - x = y = 5;     → Assign(x, Assign(y, 5))
-     * - x + 1 = 10;    → 에러: "잘못된 할당 대상입니다."
+     * 할당 표현식 파싱 (Assignment Expression) 문법: assignment -> IDENTIFIER "=" assignment | equality ;
+     * <p>
+     * 할당은 우결합(right-associative) 연산자 예: a = b = c = 5; → a = (b = (c = 5))
+     * <p>
+     * 예시: - x = 10;        → Assign(x, 10) - x = y = 5;     → Assign(x, Assign(y, 5)) - x + 1 = 10;
+     * → 에러: "잘못된 할당 대상입니다."
      */
     private Expr assignment() {
         // equality 표현식으로 파싱 (좌변이 될 수 있는 표현식)
