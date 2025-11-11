@@ -1,0 +1,5 @@
+함수 sayHi(first, last) {
+  출력 "Hi, " + first + " " + last + "!";
+}
+
+sayHi("Dear", "Reader");

@@ -46,6 +46,9 @@ public class Parser {
     private Stmt declaration() {
         try {
             // 변수를 선언하고 있는지 먼저 확인
+            if (match(FUN)) {
+                return function("function");
+            }
             if (match(VAR)) {
                 return varDeclaration();
             }
@@ -67,6 +70,10 @@ public class Parser {
         // print 토큰이 나오면 print 문
         if (match(PRINT)) {
             return printStatement();
+        }
+
+        if (match(RETURN)) {
+            return returnStatement();
         }
 
         if (match(WHILE)) {
@@ -153,6 +160,17 @@ public class Parser {
         return new Stmt.Print(value);
     }
 
+    private Stmt returnStatement() {
+        Token keyword = previous();
+        Expr value = null;
+        if (!check(SEMICOLON)) {
+            value = expression();
+        }
+
+        consume(SEMICOLON, "return 값 뒤에 ';' 가 필요합니다.");
+        return new Stmt.Return(keyword, value);
+    }
+
     private Stmt varDeclaration() {
         Token name = consume(IDENTIFIER, "변수 이름이 필요합니다.");
 
@@ -182,6 +200,29 @@ public class Parser {
         Expr expr = expression();
         consume(SEMICOLON, "표현식 뒤에 ';'이 필요합니다.");
         return new Stmt.Expression(expr);
+    }
+
+    // kind 에 메서드 명 전달
+    private Stmt.Function function(String kind) {
+        Token name = consume(IDENTIFIER, kind + " 명이 필요합니다.");
+        consume(LEFT_PAREN, kind + " 명 뒤에 '(' 가 필요합니다.");
+        List<Token> parameters = new ArrayList<>();
+        if (!check(RIGHT_PAREN)) {
+            // 더 이상 쉼표가 없을 때 까지 파싱
+            do {
+                if (parameters.size() >= 255) {
+                    error(peek(), "255개 이상의 파라미너틑 올 수 없습니다.");
+                }
+
+                parameters.add(consume(IDENTIFIER, "파라미터 이름이 필요합니다."));
+            } while (match(COMMA));
+        }
+
+        consume(RIGHT_PAREN, "파라미터 뒤에 ')' 가 필요합니다.");
+
+        consume(LEFT_BRACE, kind + " 바디 전에 '{' 가 필요합니다.");
+        List<Stmt> body = block();
+        return new Stmt.Function(name, parameters, body);
     }
 
     private List<Stmt> block() {
@@ -307,7 +348,38 @@ public class Parser {
             return new Expr.Unary(operator, right);
         }
 
-        return primary();
+        return call();
+    }
+
+    private Expr call() {
+        Expr expr = primary();
+
+        while (true) {
+            // 좌측 피 연산자를 먼저 파싱
+            // '(' 가 나올때 마다 앞서 파싱한 표현식을 피 호출자로 사용해 호출식을 파싱
+            if (match(LEFT_PAREN)) {
+                expr = finishCall(expr);
+            } else {
+                break;
+            }
+        }
+
+        return expr;
+    }
+
+    private Expr finishCall(Expr callee) {
+        List<Expr> arguments = new ArrayList<>();
+        if (!check(RIGHT_PAREN)) {
+            do {
+                if (arguments.size() >= 255) {
+                    error(peek(), "255개 이상의 인자는 올 수 없습니다.");
+                }
+                arguments.add(expression());
+            } while (match(COMMA));
+        }
+
+        Token paren = consume(RIGHT_PAREN, "인자 뒤에 ')' 가 있어야 합니다.");
+        return new Expr.Call(callee, paren, arguments);
     }
 
 
