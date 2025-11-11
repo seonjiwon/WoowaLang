@@ -45,6 +45,9 @@ public class Parser {
 
     private Stmt declaration() {
         try {
+            if (match(CLASS)) {
+                return classDeclaration();
+            }
             // 변수를 선언하고 있는지 먼저 확인
             if (match(FUN)) {
                 return function("function");
@@ -57,6 +60,28 @@ public class Parser {
             synchronize();
             return null;
         }
+    }
+
+    private Stmt classDeclaration() {
+        Token name = consume(IDENTIFIER, "클래스 이름이 필요합니다.");
+
+        Expr.Variable superclass = null;
+        if (match(LESS)) {
+            consume(IDENTIFIER, "슈퍼 클래스 이름이 필요합니다.");
+            superclass = new Expr.Variable(previous());
+        }
+
+        consume(LEFT_BRACE, "클래스 바디 이전에 '{'가 필요합니다.");
+
+        // 닫는 중괄호를 만날 때 까지 메서드 계속 파싱
+        List<Stmt.Function> methods = new ArrayList<>();
+        while (!check(RIGHT_BRACE) && !isAtEnd()) {
+            methods.add(function("method"));
+        }
+
+        consume(RIGHT_BRACE, "클래스 바디 이후에 '}' 가 필요합니다.");
+
+        return new Stmt.Class(name, superclass, methods);
     }
 
     private Stmt statement() {
@@ -259,6 +284,9 @@ public class Parser {
                 Token name = ((Variable) expr).name;
                 // Assign 노드 생성후 반환
                 return new Expr.Assign(name, value);
+            } else if (expr instanceof Expr.Get) {
+                Expr.Get get = (Expr.Get) expr;
+                return new Expr.Set(get.object, get.name, value);
             }
 
             error(equals, "잘못된 할당 대상입니다.");
@@ -359,6 +387,9 @@ public class Parser {
             // '(' 가 나올때 마다 앞서 파싱한 표현식을 피 호출자로 사용해 호출식을 파싱
             if (match(LEFT_PAREN)) {
                 expr = finishCall(expr);
+            } else if (match(DOT)) {
+                Token name = consume(IDENTIFIER, "'.' 이후에 속성이름이 와야 합니다.");
+                expr = new Expr.Get(expr, name);
             } else {
                 break;
             }
@@ -404,6 +435,17 @@ public class Parser {
         // 예: "123" 토큰 -> 123.0 (double)
         if (match(NUMBER, STRING)) {
             return new Expr.Literal(previous().literal);
+        }
+
+        if (match(SUPER)) {
+            Token keyword = previous();
+            consume(DOT, "'super' 뒤에는 '.' 이 필요합니다.");
+            Token method = consume(IDENTIFIER, "슈퍼클래스 메서드 이름이 필요합니다.");
+            return new Expr.Super(keyword, method);
+        }
+
+        if (match(THIS)) {
+            return new Expr.This(previous());
         }
 
         if (match(IDENTIFIER)) {

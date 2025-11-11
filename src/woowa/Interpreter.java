@@ -1,11 +1,14 @@
 package woowa;
 
 import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 import woowa.Expr.Binary;
 import woowa.Expr.Grouping;
 import woowa.Expr.Literal;
 import woowa.Expr.Unary;
+import woowa.Stmt.Function;
 import woowa.Stmt.Return;
 
 /**
@@ -15,6 +18,7 @@ public class Interpreter implements Expr.Visitor<Object>, Stmt.Visitor<Void> {
 
     final Environment globals = new Environment();
     private Environment environment = globals;
+    private final Map<Expr, Integer> locals = new HashMap<>();
 
     // 시간 측정
     Interpreter() {
@@ -57,9 +61,46 @@ public class Interpreter implements Expr.Visitor<Object>, Stmt.Visitor<Void> {
         stmt.accept(this);
     }
 
+    void resolve(Expr expr, int depth) {
+        locals.put(expr, depth);
+    }
+
     @Override
     public Void visitBlockStmt(Stmt.Block stmt) {
         executeBlock(stmt.statements, new Environment(environment));
+        return null;
+    }
+
+    @Override
+    public Void visitClassStmt(Stmt.Class stmt) {
+        Object superclass = null;
+        if (stmt.superclass != null) {
+            superclass = evaluate(stmt.superclass);
+            if (!(superclass instanceof WoowaClass)) {
+                throw new RuntimeError(stmt.superclass.name, "슈퍼클래스는 클래스여야 한다.");
+            }
+        }
+
+        environment.define(stmt.name.lexeme, null);
+
+        if (stmt.superclass != null) {
+            environment = new Environment(environment);
+            environment.define("super", superclass);
+        }
+
+        Map<String, WoowaFunction> methods = new HashMap<>();
+        for (Function method : stmt.methods) {
+            WoowaFunction function = new WoowaFunction(method, environment, method.name.lexeme.equals("init"));
+            methods.put(method.name.lexeme, function);
+        }
+
+        WoowaClass klass = new WoowaClass(stmt.name.lexeme, (WoowaClass) superclass, methods);
+
+        if (superclass != null) {
+            environment = environment.enclosing;
+        }
+
+        environment.assign(stmt.name, klass);
         return null;
     }
 
@@ -88,7 +129,7 @@ public class Interpreter implements Expr.Visitor<Object>, Stmt.Visitor<Void> {
 
     @Override
     public Void visitFunctionStmt(Stmt.Function stmt) {
-        WoowaFunction function = new WoowaFunction(stmt, environment);
+        WoowaFunction function = new WoowaFunction(stmt, environment, false);
         environment.define(stmt.name.lexeme, function);
         return null;
     }
@@ -141,7 +182,13 @@ public class Interpreter implements Expr.Visitor<Object>, Stmt.Visitor<Void> {
     @Override
     public Object visitAssignExpr(Expr.Assign expr) {
         Object value = evaluate(expr.value);
-        environment.assign(expr.name, value);
+
+        Integer distance = locals.get(expr);
+        if (distance != null) {
+            environment.assignAt(distance, expr.name, value);
+        } else {
+            globals.assign(expr.name, value);
+        }
         return value;
     }
 
@@ -214,6 +261,16 @@ public class Interpreter implements Expr.Visitor<Object>, Stmt.Visitor<Void> {
         return function.call(this, arguments);
     }
 
+    @Override
+    public Object visitGetExpr(Expr.Get expr) {
+        Object object = evaluate(expr.object);
+        if (object instanceof WoowaInstance) {
+            return ((WoowaInstance) object).get(expr.name);
+        }
+
+        throw new RuntimeError(expr.name, "오직 인스턴스만이 속성을 가집니다.");
+    }
+
     // 괄호는 단순히 내부 표현식을 먼저 평가하라는 의미
     @Override
     public Object visitGroupingExpr(Grouping expr) {
@@ -247,6 +304,40 @@ public class Interpreter implements Expr.Visitor<Object>, Stmt.Visitor<Void> {
     }
 
     @Override
+    public Object visitSetExpr(Expr.Set expr) {
+        Object object = evaluate(expr.object);
+
+        if (!(object instanceof WoowaInstance)) {
+            throw new RuntimeError(expr.name, "오직 인스턴스만이 필드를 가집니다.");
+        }
+
+        Object value = evaluate(expr.value);
+        ((WoowaInstance) object).set(expr.name, value);
+        return value;
+    }
+
+    @Override
+    public Object visitSuperExpr(Expr.Super expr) {
+        int distance = locals.get(expr);
+        WoowaClass superclass = (WoowaClass) environment.getAt(distance, "super");
+
+        WoowaInstance object = (WoowaInstance) environment.getAt(distance - 1, "this");
+
+        WoowaFunction method = superclass.findMethod(expr.method.lexeme);
+
+        if (method == null) {
+            throw new RuntimeError(expr.method, "정의되지 않은 속성 '" + expr.method.lexeme + "'.");
+        }
+
+        return method.bind(object);
+    }
+
+    @Override
+    public Object visitThisExpr(Expr.This expr) {
+        return lookUpVariable(expr.keyword, expr);
+    }
+
+    @Override
     public Object visitUnaryExpr(Unary expr) {
         Object right = evaluate(expr.right);
 
@@ -264,7 +355,16 @@ public class Interpreter implements Expr.Visitor<Object>, Stmt.Visitor<Void> {
 
     @Override
     public Object visitVariableExpr(Expr.Variable expr) {
-        return environment.get(expr.name);
+        return lookUpVariable(expr.name, expr);
+    }
+
+    private Object lookUpVariable(Token name, Expr expr) {
+        Integer distance = locals.get(expr);
+        if (distance != null) {
+            return environment.getAt(distance, name.lexeme);
+        } else {
+            return globals.get(name);
+        }
     }
 
     // 런타임 에러 감지용 메서드

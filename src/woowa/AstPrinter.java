@@ -16,8 +16,7 @@ import woowa.Stmt.Var;
  *
  * 예: (1 + 2) * 3 -> "(* (group (+ 1 2)) 3)"
  */
-public class AstPrinter implements Expr.Visitor<String>, Stmt.Visitor<String>{
-
+class AstPrinter implements Expr.Visitor<String>, Stmt.Visitor<String> {
     String print(Expr expr) {
         return expr.accept(this);
     }
@@ -25,7 +24,6 @@ public class AstPrinter implements Expr.Visitor<String>, Stmt.Visitor<String>{
     String print(Stmt stmt) {
         return stmt.accept(this);
     }
-
     @Override
     public String visitBlockStmt(Stmt.Block stmt) {
         StringBuilder builder = new StringBuilder();
@@ -33,6 +31,23 @@ public class AstPrinter implements Expr.Visitor<String>, Stmt.Visitor<String>{
 
         for (Stmt statement : stmt.statements) {
             builder.append(statement.accept(this));
+        }
+
+        builder.append(")");
+        return builder.toString();
+    }
+
+    @Override
+    public String visitClassStmt(Stmt.Class stmt) {
+        StringBuilder builder = new StringBuilder();
+        builder.append("(class " + stmt.name.lexeme);
+
+        if (stmt.superclass != null) {
+            builder.append(" < " + print(stmt.superclass));
+        }
+
+        for (Stmt.Function method : stmt.methods) {
+            builder.append(" " + print(method));
         }
 
         builder.append(")");
@@ -100,14 +115,14 @@ public class AstPrinter implements Expr.Visitor<String>, Stmt.Visitor<String>{
     }
 
     @Override
-    public String visitAssignExpr(Assign expr) {
+    public String visitAssignExpr(Expr.Assign expr) {
         return parenthesize2("=", expr.name.lexeme, expr.value);
     }
 
-    // 이항 연산 표현식 방문 (예: 1 + 2, 3 * 4)
     @Override
     public String visitBinaryExpr(Expr.Binary expr) {
-        return parenthesize(expr.operator.lexeme, expr.left, expr.right); // 1 + 2 -> "(+ 1 2)"
+        return parenthesize(expr.operator.lexeme,
+            expr.left, expr.right);
     }
 
     @Override
@@ -115,19 +130,20 @@ public class AstPrinter implements Expr.Visitor<String>, Stmt.Visitor<String>{
         return parenthesize2("call", expr.callee, expr.arguments);
     }
 
-    // 그룹 표현식 방문 (예: (1 + 2))
     @Override
-    public String visitGroupingExpr(Expr.Grouping expr) {
-        return parenthesize("group", expr.expression); // (1 + 2) -> "(group (+ 1 2))"
+    public String visitGetExpr(Expr.Get expr) {
+        return parenthesize2(".", expr.object, expr.name.lexeme);
     }
 
-    // 리터럴(값) 표현식 방문 (예: 123, "hello", true)
+    @Override
+    public String visitGroupingExpr(Expr.Grouping expr) {
+        return parenthesize("group", expr.expression);
+    }
+
     @Override
     public String visitLiteralExpr(Expr.Literal expr) {
-        if (expr.value == null) {
-            return "nil"; // null -> "nil"로
-        }
-        return expr.value.toString(); // 123 -> "123", "hello" -> "hello"
+        if (expr.value == null) return "nil";
+        return expr.value.toString();
     }
 
     @Override
@@ -135,28 +151,42 @@ public class AstPrinter implements Expr.Visitor<String>, Stmt.Visitor<String>{
         return parenthesize(expr.operator.lexeme, expr.left, expr.right);
     }
 
-    // 단항 연산 표현식 방문 (예: -5, !true)
+    @Override
+    public String visitSetExpr(Expr.Set expr) {
+        return parenthesize2("=",
+            expr.object, expr.name.lexeme, expr.value);
+    }
+
+    @Override
+    public String visitSuperExpr(Expr.Super expr) {
+        return parenthesize2("super", expr.method);
+    }
+
+    @Override
+    public String visitThisExpr(Expr.This expr) {
+        return "this";
+    }
+
     @Override
     public String visitUnaryExpr(Expr.Unary expr) {
-        return parenthesize(expr.operator.lexeme, expr.right); // -123 -> "(- 123)"
+        return parenthesize(expr.operator.lexeme, expr.right);
     }
 
     @Override
-    public String visitVariableExpr(Variable expr) {
+    public String visitVariableExpr(Expr.Variable expr) {
         return expr.name.lexeme;
     }
-
     private String parenthesize(String name, Expr... exprs) {
         StringBuilder builder = new StringBuilder();
 
-        builder.append("(").append(name); // 여는 괄호와 이름
+        builder.append("(").append(name);
         for (Expr expr : exprs) {
             builder.append(" ");
-            builder.append(expr.accept(this)); // 재귀: 각 하위 표현식 방문
+            builder.append(expr.accept(this));
         }
-        builder.append(")"); // 닫는 괄호
+        builder.append(")");
 
-        return builder.toString(); // parenthesize("+", Literal(1), Literal(2)) -> "(+ 1 2)"
+        return builder.toString();
     }
 
     private String parenthesize2(String name, Object... parts) {

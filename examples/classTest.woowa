@@ -1,0 +1,7 @@
+class IceCream {
+  serveOn(){
+    return "Cookie And Cream";
+  }
+}
+
+print IceCream;

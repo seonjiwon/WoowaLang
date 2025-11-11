@@ -68,6 +68,13 @@ public class Woowa {
         // 구문 에러시 정지
         if (hadError) return;
 
+        Resolver resolver = new Resolver(interpreter);
+        resolver.resolve(statements);
+
+        if (hadError) {
+            return;
+        }
+
         interpreter.interpret(statements);
     }
 

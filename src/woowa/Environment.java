@@ -16,6 +16,7 @@ public class Environment {
         this.enclosing = enclosing;
     }
 
+
     Object get(Token name) {
         // 변수가 발견되면 해당 변수에 바인딩 된 값 return
         if (values.containsKey(name.lexeme)) {
@@ -49,4 +50,20 @@ public class Environment {
         values.put(name, value);
     }
 
+    Environment ancestor(int distance) {
+        Environment environment = this;
+        for (int i = 0; i < distance; i++) {
+            environment = environment.enclosing;
+        }
+
+        return environment;
+    }
+
+    Object getAt(int distance, String name) {
+        return ancestor(distance).values.get(name);
+    }
+
+    void assignAt(int distance, Token name, Object value) {
+        ancestor(distance).values.put(name.lexeme, value);
+    }
 }

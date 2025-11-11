@@ -1,14 +1,24 @@
 package woowa;
 
 import java.util.List;
+import woowa.Stmt.Function;
 
 public class WoowaFunction implements WoowaCallable{
     private final Stmt.Function declaration;
     private final Environment closure;
 
-    WoowaFunction(Stmt.Function declaration, Environment closure) {
-        this.closure = closure;
+    private final boolean isInitializer;
+
+    public WoowaFunction(Function declaration, Environment closure, boolean isInitializer) {
         this.declaration = declaration;
+        this.closure = closure;
+        this.isInitializer = isInitializer;
+    }
+
+    WoowaFunction bind(WoowaInstance instance) {
+        Environment environment = new Environment(closure);
+        environment.define("this", instance);
+        return new WoowaFunction(declaration, environment, isInitializer);
     }
 
     @Override
@@ -27,7 +37,13 @@ public class WoowaFunction implements WoowaCallable{
         try {
             interpreter.executeBlock(declaration.body, environment);
         } catch (Return returnValue) {
-            return returnValue.value;
+            if (isInitializer) {
+                return closure.getAt(0, "this");
+            }
+        }
+
+        if (isInitializer) {
+            return closure.getAt(0, "this");
         }
         return null;
     }
