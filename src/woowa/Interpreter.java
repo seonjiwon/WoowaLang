@@ -1,9 +1,12 @@
 package woowa;
 
+import function.NativeFunctionRegistry;
+import java.io.Console;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.Scanner;
 import woowa.Expr.Binary;
 import woowa.Expr.Grouping;
 import woowa.Expr.Literal;
@@ -16,26 +19,20 @@ import woowa.Stmt.Return;
  */
 public class Interpreter implements Expr.Visitor<Object>, Stmt.Visitor<Void> {
 
-    final Environment globals = new Environment();
+    final Environment globals = initializeGlobals();
     private Environment environment = globals;
     private final Map<Expr, Integer> locals = new HashMap<>();
 
-    // 시간 측정
-    Interpreter() {
-        globals.define("clock", new WoowaCallable() {
-            @Override
-            public int arity() { return 0; }
+    private Environment initializeGlobals() {
+        Environment globals = new Environment();
 
-            @Override
-            public Object call(Interpreter interpreter,
-                               List<Object> arguments) {
-                return (double)System.currentTimeMillis() / 1000.0;
-            }
+        NativeFunctionRegistry registry = new NativeFunctionRegistry();
+        registry.registerAll(globals);
 
-            @Override
-            public String toString() { return "<native fn>"; }
-        });
+        return globals;
     }
+
+    Interpreter() {}
 
     /**
      * 1. 표현식을 평가(evaluate)
@@ -223,11 +220,11 @@ public class Interpreter implements Expr.Visitor<Object>, Stmt.Visitor<Void> {
                     return (double) left + (double) right;
                 }
                 // 문자일 경우 문자열 합치기
-                if (left instanceof String && right instanceof String) {
-                    return (String) left + (String) right;
+                if (left instanceof String || right instanceof String) {
+                    return stringify(left) + stringify(right);
                 }
 
-                throw new RuntimeError(expr.operator, "피연산자는 두개의 숫자거나 두개의 문장여야 합니다.");
+                throw new RuntimeError(expr.operator, "피연산자는 두개의 숫자거나 문자열 연결을 위한 하나 이상의 문자열이어야 합니다.");
             case SLASH:
                 checkNumberOperands(expr.operator, left, right);
                 return (double) left / (double) right;

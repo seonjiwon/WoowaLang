@@ -46,7 +46,7 @@ public class Environment {
         throw new RuntimeError(name, "정의되지 않은 변수 '" + name.lexeme + "'.");
     }
 
-    void define(String name, Object value) {
+    public void define(String name, Object value) {
         values.put(name, value);
     }
 
