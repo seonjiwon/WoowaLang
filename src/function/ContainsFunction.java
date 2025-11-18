@@ -36,6 +36,6 @@ public class ContainsFunction implements NativeFunction {
 
     @Override
     public String toString() {
-        return "<native fn contains>";
+        return "<native fn>";
     }
 }

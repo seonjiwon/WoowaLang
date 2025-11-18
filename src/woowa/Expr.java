@@ -4,11 +4,14 @@ import java.util.List;
 
 abstract class Expr {
   interface Visitor<R> {
+    R visitArrayExpr(Array expr);
     R visitAssignExpr(Assign expr);
     R visitBinaryExpr(Binary expr);
     R visitCallExpr(Call expr);
     R visitGetExpr(Get expr);
     R visitGroupingExpr(Grouping expr);
+    R visitIndexExpr(Index expr);
+    R visitIndexSetExpr(IndexSet expr);
     R visitLiteralExpr(Literal expr);
     R visitLogicalExpr(Logical expr);
     R visitSetExpr(Set expr);
@@ -19,6 +22,20 @@ abstract class Expr {
   }
 
   // Nested Expr classes here...
+//> expr-array
+  static class Array extends Expr {
+    Array(List<Expr> elements) {
+      this.elements = elements;
+    }
+
+    @Override
+    <R> R accept(Visitor<R> visitor) {
+      return visitor.visitArrayExpr(this);
+    }
+
+    final List<Expr> elements;
+  }
+//< expr-array
 //> expr-assign
   static class Assign extends Expr {
     Assign(Token name, Expr value) {
@@ -101,6 +118,40 @@ abstract class Expr {
     final Expr expression;
   }
 //< expr-grouping
+//> expr-index
+  static class Index extends Expr {
+    Index(Expr object, Expr index) {
+      this.object = object;
+      this.index = index;
+    }
+
+    @Override
+    <R> R accept(Visitor<R> visitor) {
+      return visitor.visitIndexExpr(this);
+    }
+
+    final Expr object;
+    final Expr index;
+  }
+//< expr-index
+//> expr-indexset
+  static class IndexSet extends Expr {
+    IndexSet(Expr object, Expr index, Expr value) {
+      this.object = object;
+      this.index = index;
+      this.value = value;
+    }
+
+    @Override
+    <R> R accept(Visitor<R> visitor) {
+      return visitor.visitIndexSetExpr(this);
+    }
+
+    final Expr object;
+    final Expr index;
+    final Expr value;
+  }
+//< expr-indexset
 //> expr-literal
   static class Literal extends Expr {
     Literal(Object value) {

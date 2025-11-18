@@ -7,6 +7,7 @@ import java.util.stream.Collectors;
 import woowa.Interpreter;
 import woowa.RuntimeError;
 import woowa.Token;
+import woowa.WoowaArray;
 
 public class SplitFunction implements NativeFunction {
 
@@ -34,13 +35,14 @@ public class SplitFunction implements NativeFunction {
         String target = (String) arg0;
         String delimiter = (String) arg1;
 
-        List<String> parts = Arrays.asList(target.split(delimiter));
+        String[] parts = target.split(delimiter);
+        List<Object> elements = new ArrayList<>(Arrays.asList(parts));
 
-        return new ArrayList<>(parts);
+        return new WoowaArray(elements);
     }
 
     @Override
     public String toString() {
-        return "<native fn split>";
+        return "<native fn>";
     }
 }

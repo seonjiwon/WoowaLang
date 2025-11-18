@@ -24,11 +24,14 @@ public class GenerateAst {
         }
         String outputDir = args[0];
         defineAst(outputDir, "Expr", Arrays.asList(
+            "Array    : List<Expr> elements",
             "Assign   : Token name, Expr value",
             "Binary   : Expr left, Token operator, Expr right",
             "Call     : Expr callee, Token paren, List<Expr> arguments",
             "Get      : Expr object, Token name",
             "Grouping : Expr expression",
+            "Index    : Expr object, Expr index",
+            "IndexSet : Expr object, Expr index, Expr value",
             "Literal  : Object value",
             "Logical  : Expr left, Token operator, Expr right",
             "Set      : Expr object, Token name, Expr value",

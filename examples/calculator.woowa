@@ -1,0 +1,24 @@
+// 입력 받기
+출력 "덧셈할 문자열을 입력해 주세요.";
+변수 input = 읽기();
+
+만약 (input == "" 또는 input == 널) {
+    출력 "결과 : 0";
+} 아니면 {
+    // , or : 를 사용해서 분리
+    변수 tokens = 분리(input, ",|:");
+
+    변수 sum = 0;
+    변수 size = 배열크기(tokens);
+
+    변수 i;
+    반복 (i = 0; i < size; i = i + 1) {
+        변수 token = tokens[i];
+        만약 (token != "") {
+            변수 number = 정수파싱(token);
+            sum = sum + number;
+        }
+    }
+
+    출력 "결과 : " + sum;
+}

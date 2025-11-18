@@ -39,6 +39,6 @@ public class ParseIntFunction implements NativeFunction{
 
     @Override
     public String toString() {
-        return "<native fn parseInt>";
+        return "<native fn>";
     }
 }
