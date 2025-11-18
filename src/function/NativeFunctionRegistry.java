@@ -13,15 +13,16 @@ public class NativeFunctionRegistry {
             new LengthFunction(),
             new SubstringFunction(),
             new ContainsFunction(),
-            new ParseIntFunction()
+            new ParseIntFunction(),
+            new ArraySizeFunction(),
+            new ArrayPushFunction()
         );
     }
 
     public void registerAll(Environment globals) {
-//        System.out.println("Native Functions 등록 중..."); // 등록 확인용 메시지
         for (NativeFunction function : getNativeFunctions()) {
+//            System.out.println("함수 등록: " + function.getName());
             globals.define(function.getName(), function);
-//            System.out.println("  -> '" + function.getName() + "' 등록 완료.");
         }
     }
 }

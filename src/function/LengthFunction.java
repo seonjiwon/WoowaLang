@@ -32,6 +32,6 @@ public class LengthFunction implements NativeFunction{
 
     @Override
     public String toString() {
-        return "<native fn length>";
+        return "<native fn>";
     }
 }

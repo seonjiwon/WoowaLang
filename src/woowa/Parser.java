@@ -287,6 +287,9 @@ public class Parser {
             } else if (expr instanceof Expr.Get) {
                 Expr.Get get = (Expr.Get) expr;
                 return new Expr.Set(get.object, get.name, value);
+            } else if (expr instanceof Expr.Index) {
+                Expr.Index index = (Expr.Index)expr;
+                return new Expr.IndexSet(index.object, index.index, value);
             }
 
             error(equals, "잘못된 할당 대상입니다.");
@@ -390,6 +393,10 @@ public class Parser {
             } else if (match(DOT)) {
                 Token name = consume(IDENTIFIER, "'.' 이후에 속성이름이 와야 합니다.");
                 expr = new Expr.Get(expr, name);
+            } else if (match(LEFT_BRACKET)) {
+                Expr index = expression();
+                consume(RIGHT_BRACKET, "인덱스 접근 끝에 ']'가 필요합니다.");
+                expr = new Expr.Index(expr, index); //
             } else {
                 break;
             }
@@ -450,6 +457,24 @@ public class Parser {
 
         if (match(IDENTIFIER)) {
             return new Expr.Variable(previous());
+        }
+
+        // '[' 를 만남
+        if (match(LEFT_BRACKET)) {
+            List<Expr> elements = new ArrayList<>();
+
+            // ']' 를 만나기 전까지 요소들 파싱
+            if (!check(RIGHT_BRACKET)) {
+                // 첫 번째 요소
+                elements.add(expression());
+
+                // ',' 만남 -> 나머지 요소 파싱
+                while (match(COMMA)) {
+                    elements.add(expression());
+                }
+            }
+            consume(RIGHT_BRACKET, "배열 리터럴 끝에 ']'가 필요합니다.");
+            return new Expr.Array(elements);
         }
 
         // 괄호로 묶인 표현식 (그룹)

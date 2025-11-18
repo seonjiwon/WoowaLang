@@ -190,6 +190,29 @@ public class Resolver implements Expr.Visitor<Void>, Stmt.Visitor<Void> {
     }
 
     @Override
+    public Void visitArrayExpr(Expr.Array expr) {
+        for (Expr element : expr.elements) {
+            resolve(element);
+        }
+        return null;
+    }
+
+    @Override
+    public Void visitIndexExpr(Expr.Index expr) {
+        resolve(expr.object);  // 배열
+        resolve(expr.index);   // 인덱스
+        return null;
+    }
+
+    @Override
+    public Void visitIndexSetExpr(Expr.IndexSet expr) {
+        resolve(expr.object);  // 배열
+        resolve(expr.index);   // 인덱스
+        resolve(expr.value);   // 할당할 값
+        return null;
+    }
+
+    @Override
     public Void visitLiteralExpr(Expr.Literal expr) {
         return null;
     }

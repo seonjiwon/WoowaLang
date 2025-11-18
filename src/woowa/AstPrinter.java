@@ -189,6 +189,32 @@ class AstPrinter implements Expr.Visitor<String>, Stmt.Visitor<String> {
         return builder.toString();
     }
 
+    @Override
+    public String visitArrayExpr(Expr.Array expr) {
+        StringBuilder builder = new StringBuilder();
+        builder.append("[");
+
+        for (int i = 0; i < expr.elements.size(); i++) {
+            if (i > 0) {
+                builder.append(", ");
+            }
+            builder.append(expr.elements.get(i).accept(this));
+        }
+
+        builder.append("]");
+        return builder.toString();
+    }
+
+    @Override
+    public String visitIndexExpr(Expr.Index expr) {
+        return parenthesize2("index", expr.object, expr.index);
+    }
+
+    @Override
+    public String visitIndexSetExpr(Expr.IndexSet expr) {
+        return parenthesize2("index-set", expr.object, expr.index, expr.value);
+    }
+
     private String parenthesize2(String name, Object... parts) {
         StringBuilder builder = new StringBuilder();
 

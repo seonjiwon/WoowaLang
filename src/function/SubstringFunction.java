@@ -10,7 +10,7 @@ public class SubstringFunction implements NativeFunction {
 
     @Override
     public String getName() {
-        return "자르기";
+        return "부분문자열";
     }
 
     @Override
@@ -44,6 +44,6 @@ public class SubstringFunction implements NativeFunction {
 
     @Override
     public String toString() {
-        return "<native fn substring>";
+        return "<native fn>";
     }
 }

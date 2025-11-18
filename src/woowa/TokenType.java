@@ -1,8 +1,10 @@
 package woowa;
 
+import javax.print.DocFlavor.STRING;
+
 enum TokenType {
     // 단일 문자 토큰 (한 글자로 이루어진 연산자나 구분자)
-    LEFT_PAREN, RIGHT_PAREN, LEFT_BRACE, RIGHT_BRACE,
+    LEFT_PAREN, RIGHT_PAREN, LEFT_BRACE, RIGHT_BRACE, LEFT_BRACKET, RIGHT_BRACKET,
     COMMA, DOT, MINUS, PLUS, SEMICOLON, SLASH, STAR,
 
     // 1개 또는 2개 문자로 이루어진 토큰 (비교 연산자 등)

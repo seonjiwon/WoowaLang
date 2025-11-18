@@ -1,18 +1,15 @@
 package woowa;
 
 import function.NativeFunctionRegistry;
-import java.io.Console;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
-import java.util.Scanner;
 import woowa.Expr.Binary;
 import woowa.Expr.Grouping;
 import woowa.Expr.Literal;
 import woowa.Expr.Unary;
 import woowa.Stmt.Function;
-import woowa.Stmt.Return;
 
 /**
  * 인터프리터 (Interpreter) AST 를 순회하며 실제로 표현식을 평가
@@ -32,13 +29,11 @@ public class Interpreter implements Expr.Visitor<Object>, Stmt.Visitor<Void> {
         return globals;
     }
 
-    Interpreter() {}
+    Interpreter() {
+    }
 
     /**
-     * 1. 표현식을 평가(evaluate)
-     * 2. 결과를 문자열로 변환(stringify)
-     * 3. 콘솔에 출력
-     * 4. 런타임 에러 발생 시 에러 처리
+     * 1. 표현식을 평가(evaluate) 2. 결과를 문자열로 변환(stringify) 3. 콘솔에 출력 4. 런타임 에러 발생 시 에러 처리
      */
     void interpret(List<Stmt> statements) {
         try {
@@ -87,7 +82,8 @@ public class Interpreter implements Expr.Visitor<Object>, Stmt.Visitor<Void> {
 
         Map<String, WoowaFunction> methods = new HashMap<>();
         for (Function method : stmt.methods) {
-            WoowaFunction function = new WoowaFunction(method, environment, method.name.lexeme.equals("init"));
+            WoowaFunction function = new WoowaFunction(method, environment,
+                method.name.lexeme.equals("init"));
             methods.put(method.name.lexeme, function);
         }
 
@@ -99,6 +95,68 @@ public class Interpreter implements Expr.Visitor<Object>, Stmt.Visitor<Void> {
 
         environment.assign(stmt.name, klass);
         return null;
+    }
+
+    @Override
+    public Object visitArrayExpr(Expr.Array expr) {
+        // 각 요소를 평가
+        List<Object> elements = new ArrayList<>();
+        for (Expr element : expr.elements) {
+            elements.add(evaluate(element));
+        }
+
+        return new WoowaArray(elements);
+    }
+
+    @Override
+    public Object visitIndexExpr(Expr.Index expr) {
+        Object object = evaluate(expr.object);
+
+        if (!(object instanceof WoowaArray)) {
+            throw new RuntimeError(new Token(null, "", null, -1),
+                "인덱스 접근은 배열에만 가능합니다.");
+        }
+
+        // 인덱스 평가
+        Object indexObj = evaluate(expr.index);
+
+        if (!(indexObj instanceof Double)) {
+            throw new RuntimeError(new Token(null, "", null, -1),
+                "배열 인덱스는 숫자여야 합니다.");
+        }
+
+        int index = ((Double) indexObj).intValue();
+
+        WoowaArray array = (WoowaArray) object;
+        return array.get(index);
+    }
+
+    @Override
+    public Object visitIndexSetExpr(Expr.IndexSet expr) {
+        Object object = evaluate(expr.object);
+
+        if (!(object instanceof WoowaArray)) {
+            throw new RuntimeError(new Token(null, "", null, -1),
+                "인덱스 할당은 배열에만 가능합니다.");
+        }
+
+        // 인덱스 평가
+        Object indexObj = evaluate(expr.index);
+
+        if (!(indexObj instanceof Double)) {
+            throw new RuntimeError(new Token(null, "", null, -1),
+                "배열 인덱스는 숫자여야 합니다.");
+        }
+
+        // 할당할 값 평가
+        Object value = evaluate(expr.value);
+
+        int index = ((Double) indexObj).intValue();
+
+        WoowaArray array = (WoowaArray) object;
+        array.set(index, value);
+
+        return value;
     }
 
     void executeBlock(List<Stmt> statements, Environment environment) {
@@ -152,7 +210,9 @@ public class Interpreter implements Expr.Visitor<Object>, Stmt.Visitor<Void> {
     public Void visitReturnStmt(Stmt.Return stmt) {
         Object value = null;
         // return 값이 있으면 평가하고 없으면 nil 을 반환한다.
-        if (stmt.value != null) value = evaluate(stmt.value);
+        if (stmt.value != null) {
+            value = evaluate(stmt.value);
+        }
 
         throw new woowa.Return(value);
     }
@@ -224,7 +284,8 @@ public class Interpreter implements Expr.Visitor<Object>, Stmt.Visitor<Void> {
                     return stringify(left) + stringify(right);
                 }
 
-                throw new RuntimeError(expr.operator, "피연산자는 두개의 숫자거나 문자열 연결을 위한 하나 이상의 문자열이어야 합니다.");
+                throw new RuntimeError(expr.operator,
+                    "피연산자는 두개의 숫자거나 문자열 연결을 위한 하나 이상의 문자열이어야 합니다.");
             case SLASH:
                 checkNumberOperands(expr.operator, left, right);
                 return (double) left / (double) right;
@@ -402,10 +463,8 @@ public class Interpreter implements Expr.Visitor<Object>, Stmt.Visitor<Void> {
     }
 
     /**
-     * 평가 결과를 사용자 친화적인 문자열로 변환
-     * - null -> "nil"
-     * - 정수형 double -> 소수점 제거 (3.0 -> "3")
-     * - 그 외 -> toString() 사용
+     * 평가 결과를 사용자 친화적인 문자열로 변환 - null -> "nil" - 정수형 double -> 소수점 제거 (3.0 -> "3") - 그 외 ->
+     * toString() 사용
      */
     private String stringify(Object object) {
         if (object == null) {
