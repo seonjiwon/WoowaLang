@@ -15,7 +15,7 @@ public class ArrayPushFunction implements NativeFunction {
 
     @Override
     public int arity() {
-        return 2;  // 추가(배열, 값)
+        return 2;  // 배열추가(배열, 값)
     }
 
     @Override

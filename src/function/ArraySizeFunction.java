@@ -15,7 +15,7 @@ public class ArraySizeFunction implements NativeFunction {
 
     @Override
     public int arity() {
-        return 1;  // 크기(배열)
+        return 1;  // 배열크기(배열)
     }
 
     @Override
